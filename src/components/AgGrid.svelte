@@ -24,7 +24,8 @@
     let themeUrl = `https://unpkg.com/ag-grid-community/dist/styles/ag-theme-${theme}.css`;
     let ref;
     let grid;
-    let api;
+    export let api;
+
   
     const onSelectionChanged = () => {
       const selectedRows = api.getSelectedRows();
@@ -73,15 +74,16 @@
       width: 100%;
       height: var(--grid-height, 1000px);
     }
+
   </style>
   
-  <svelte:head>
+  <!-- <svelte:head>
     {#if theme !== "alpine" && !Object.values(document.styleSheets).some((styleSheet) => styleSheet.href === themeUrl)}
       <link
         rel="stylesheet"
         href={themeUrl} />
     {/if}
-  </svelte:head>
+  </svelte:head> -->
   <div class="ag-grid-component-local">
     <div
       bind:this={ref}

@@ -1,3 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.ag-row-group.ag-row-level-0 {
+    background-color: green;
+}
+
+.ag-row-group.ag-row-level-1 {
+    background-color: #faebd7;
+}
