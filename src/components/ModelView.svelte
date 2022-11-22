@@ -1,4 +1,5 @@
 <script>
+    
     import AgGrid from "./AgGrid.svelte";
 
     import EntityData from "../data/agGrid.json"
@@ -121,4 +122,4 @@
         <input class="w-100" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
     </div>
 </div>
-<AgGrid bind:api bind:data {columnDefs} {options}/>
+<AgGrid class="h-full" bind:api bind:data {columnDefs} {options}/>

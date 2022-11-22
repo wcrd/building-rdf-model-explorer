@@ -1,7 +1,8 @@
 <script>
+
     import ModelView from "../components/ModelView.svelte";
 </script>
 
-<div>
+<div class="h-screen">
     <ModelView/>
 </div>
