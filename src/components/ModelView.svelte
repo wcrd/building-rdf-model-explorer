@@ -25,33 +25,31 @@
 
     // processed data
     // class set in building
-    // console.log("data", data.length)
     let class_set = new Set(data.map(row => row.class))
-    // console.log("class_set", class_set.size)
 
     // Get full paths for all classes, expand into set of classes we need to display
     // We are doing this because it means the full data object is put into the row, not just a 'filler' item for classes on the path
     // https://www.ag-grid.com/javascript-data-grid/tree-data/#filler-groups
     let class_all_paths_set = new Set( ontologyData.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat() )
 
-    // $: {
-    //     //class_set = async() => { return 
-    //         let v = new Set(data.map(row => row.class)) 
-    //         // console.log(v)
-    //     }
-    // $: v = new Set(data.map(row => row.class)) 
 
     let api;
     let treeApi;
 
     let columnDefs = [
-        { headerName: "Label", field: "label", colId: "labelCol", },
+        { headerName: "Label", field: "label", colId: "labelCol", filter: 'agTextColumnFilter'},
         {
             headerName: "Class",
             field: "class",
             sortable: true,
             editable: true,
             cellRenderer: nodeGetter,
+            filter:'agMultiColumnFilter',
+            filterParams: {
+                buttons: ['clear']
+            },
+            filterValueGetter: classFilterValueGetter 
+            
         },
         { headerName: "Ontology", field: "class", cellRenderer: ontologyGetter },
         { headerName: "Subject", field: "subject", sortable: true },
@@ -82,8 +80,10 @@
         defaultColDef: {
             sortable: true,
             flex: 1,
-            resizable: true
+            resizable: true,
+            floatingFilter: true
         },
+        sideBar: 'filters'
     }
 
     let ontologyGridOptions = {
@@ -113,13 +113,23 @@
                 innerRenderer: classValueGetter
             },
             filter: 'agTextColumnFilter',
-            resizable: true
+            resizable: true,
+            checkboxSelection: true,
+            headerCheckboxSelection: true,
+            headerCheckboxSelectionFilteredOnly: true
         },
         defaultColDef: {
             sortable: true,
             flex: 1,
             resizable: true
-        }   
+        },
+        rowSelection:'multiple',
+        groupSelectsChildren: true,
+        onSelectionChanged: rowChangeTest
+    }
+
+    function rowChangeTest(event) {
+        console.log("Event: ", event)
     }
 
     function getDataPath(data) {
@@ -134,6 +144,10 @@
 
     function nodeGetter(params){
         return params.value.split("#").pop()
+    }
+
+    function classFilterValueGetter(params){
+        return params.data.class.split("#").pop()
     }
 
     function ontologyGetter(params){
@@ -212,14 +226,14 @@
 
 <div class="h-full w-full flex flex-row overflow-y-hidden">
     <div id="ontology-browser" class="w-1/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 my-2 w-full">
+        <div id="controller-bar" class="flex flex-row space-x-2 my-2 px-2 w-full">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(treeApi)}>
                 <pre> + </pre>
             </button>
             <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(treeApi)}>
                 <pre> - </pre>
             </button>
-            <div class="border rounded flex-grow-1">
+            <div class="border rounded border-blue-500 flex-grow">
                 <input class="w-full" type="search" id="tree-filter-text-box" placeholder="Filter..." on:input={onTreeFilterTextBoxChanged}>
             </div>
         </div>
@@ -227,14 +241,14 @@
     </div>
 
     <div id="building-browser" class="w-4/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 ">
+        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(api)}>
                 Expand All
             </button>
             <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(api)}>
                 Collapse All
             </button>
-            <div class="border rounded w-1/3">
+            <div class="border rounded w-1/3 border-blue-500">
                 <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
             </div>
         </div>
