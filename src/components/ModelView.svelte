@@ -74,7 +74,7 @@
                     suppressCount: true,
                     innerRenderer: labelGetter
                 },
-                filter: 'agTextColumnFilter',
+                // filter: 'agTextColumnFilter',
                 resizable: true
         },
         defaultColDef: {
@@ -241,7 +241,7 @@
     </div>
 
     <div id="building-browser" class="w-4/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2">
+        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 px-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(api)}>
                 Expand All
             </button>
