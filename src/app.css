@@ -3,10 +3,16 @@
 @tailwind utilities;
 
 
-.ag-row-group.ag-row-level-0 {
+/* .ag-row-group.ag-row-level-0 {
     background-color: green;
 }
 
 .ag-row-group.ag-row-level-1 {
     background-color: #faebd7;
+} */
+
+@layer components {
+    .active-btn {
+        @apply bg-blue-500 text-white !important;
+    }
 }

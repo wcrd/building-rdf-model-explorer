@@ -36,6 +36,32 @@
     let api;
     let treeApi;
 
+     // Filter
+     let filterClasses = []
+    // set filter on main grid
+    function setClassFilter(grid_api, itemsToFilter){
+        try {
+            const filterInstance = grid_api.getFilterInstance('class');
+            // console.log(grid_api)
+            // console.log(filterInstance)
+            // Get Set filter
+            const setFilter = filterInstance.filters.filter(filter => filter.filterNameKey == "setFilter")[0]
+            console.log(setFilter, grid_api)
+            if (itemsToFilter.length==0){
+                setFilter.resetFilterValues()
+                setFilter.setModel(null)
+                grid_api.onFilterChanged()
+            } else {
+                setFilter.setModel({ values: itemsToFilter }).then(function() { grid_api.onFilterChanged(); });
+            }
+        } catch {
+            console.log('Grid not ready to filter')
+        }
+    }
+    $: {
+        setClassFilter(api, filterClasses)
+    }
+
     let columnDefs = [
         { headerName: "Label", field: "label", colId: "labelCol", filter: 'agTextColumnFilter'},
         {
@@ -83,7 +109,10 @@
             resizable: true,
             floatingFilter: true
         },
-        sideBar: 'filters'
+        sideBar: {
+            toolPanels: ['filters'],
+            defaultToolPanel: null
+        }
     }
 
     let ontologyGridOptions = {
@@ -124,12 +153,12 @@
             resizable: true
         },
         rowSelection:'multiple',
-        groupSelectsChildren: true,
-        onSelectionChanged: rowChangeTest
+        rowData: null,
+        groupSelectsChildren: true
     }
 
     function rowChangeTest(event) {
-        console.log("Event: ", event)
+        filterClasses = event.detail.map(row => row.term)
     }
 
     function getDataPath(data) {
@@ -214,10 +243,10 @@
 
     function expandRows(grid_api) {
         grid_api.expandAll();
-        console.log(debug)
     }
 
-
+    // PAGE HANDLING
+    let page = "Equipment"
 
 </script>
 
@@ -237,7 +266,7 @@
                 <input class="w-full" type="search" id="tree-filter-text-box" placeholder="Filter..." on:input={onTreeFilterTextBoxChanged}>
             </div>
         </div>
-        <AgGrid bind:api={treeApi} bind:data={ontologyData} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} />
+        <AgGrid bind:api={treeApi} bind:data={ontologyData} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} on:select={rowChangeTest}/>
     </div>
 
     <div id="building-browser" class="w-4/5 h-full">
@@ -252,7 +281,22 @@
                 <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
             </div>
         </div>
+        <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => page="Equipment"}>
+                Equipment
+            </button>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => page="Location"}>
+                Location
+            </button>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => page="Collection"}>
+                Collection
+            </button>
+        </div>
+        {#if page=="Equipment"}
         <AgGrid bind:api={api} bind:data columnDefs={columnDefs} options={options}/>
+        {:else if page=="Location"}
+        {:else if page=="Collection"}
+        {/if}
     </div>
 
 </div>
