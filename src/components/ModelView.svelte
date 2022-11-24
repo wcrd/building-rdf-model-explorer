@@ -4,6 +4,7 @@
 
     import EntityData from "../data/agGrid.json"
     import EntityPointsData from "../data/agGrid_pnts.json"
+    import OntologyData from "../data/ontology.json"
 	import { onMount } from "svelte";
     
     // let data = [
@@ -20,8 +21,28 @@
 
     // let data = EntityData;
     let data = EntityPointsData;
+    let ontologyData = OntologyData;
+
+    // processed data
+    // class set in building
+    // console.log("data", data.length)
+    let class_set = new Set(data.map(row => row.class))
+    // console.log("class_set", class_set.size)
+
+    // Get full paths for all classes, expand into set of classes we need to display
+    // We are doing this because it means the full data object is put into the row, not just a 'filler' item for classes on the path
+    // https://www.ag-grid.com/javascript-data-grid/tree-data/#filler-groups
+    let class_all_paths_set = new Set( ontologyData.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat() )
+
+    // $: {
+    //     //class_set = async() => { return 
+    //         let v = new Set(data.map(row => row.class)) 
+    //         // console.log(v)
+    //     }
+    // $: v = new Set(data.map(row => row.class)) 
 
     let api;
+    let treeApi;
 
     let columnDefs = [
         { headerName: "Label", field: "label", colId: "labelCol", },
@@ -35,6 +56,10 @@
         { headerName: "Ontology", field: "class", cellRenderer: ontologyGetter },
         { headerName: "Subject", field: "subject", sortable: true },
     ];
+
+    let ontologyColumnDefs = [
+        // { headerName: "Term", field: "term", sortable: true }
+    ]
 
     let options = {
         treeData: true,
@@ -59,6 +84,42 @@
             flex: 1,
             resizable: true
         },
+    }
+
+    let ontologyGridOptions = {
+        treeData: true,
+        getDataPath: (data) => {
+            if (data.path.full[0] == "https://brickschema.org/schema/Brick#Class"){
+                if (class_all_paths_set.has(data.uri)){
+                    return data.path.full.slice(1)
+                } else {
+                    return null
+                }
+            }
+            else {
+                return null
+            }
+        },
+        autoGroupColumnDef: {
+            headerName: "Class",
+            // width: 100,
+            sortable: true,
+            // comparator: (valueA, valueB, nodeA, nodeB, isDescending) => {
+            //     if (nodeA.groupData == nodeB.groupData) return 0;
+            //     return (nodeA.groupData > nodeB.groupData) ? 1 : -1;
+            // },
+            cellRendererParams: {
+                suppressCount: true,
+                innerRenderer: classValueGetter
+            },
+            filter: 'agTextColumnFilter',
+            resizable: true
+        },
+        defaultColDef: {
+            sortable: true,
+            flex: 1,
+            resizable: true
+        }   
     }
 
     function getDataPath(data) {
@@ -86,6 +147,29 @@
 
     }
 
+    function classValueGetter(params) {
+        // SET ICON
+        let icon = "❔" //🧱 🟢 ❔
+        try {
+            if(params.data.prefix == "brick") {
+                icon = "🧱"
+            } else if (params.data.prefix == "switch") {
+                icon = "🟢"
+            } else if (params.data.prefix == "owl") {
+                icon = "🦉"
+            }
+        } catch(e) {
+            console.log(`Grid::Class: No icon for given namespace of: ${params.value}`)
+        }
+        // SET NAME (TERM)
+        try {
+            return `${params.data.term} &nbsp; ${icon}`
+        } catch {
+            console.log(`Grid::Class: No term available for: ${params.value}`)
+            return `${params.value} &nbsp; ${icon}`
+        }
+    }
+
     // GRID CONTROL
     function onFilterTextBoxChanged() {
         api.setQuickFilter(
@@ -94,12 +178,28 @@
         api.expandAll();
     }
 
-    function collapseRows() {
-        api.collapseAll();
+    function onTreeFilterTextBoxChanged() {
+        treeApi.setQuickFilter(
+            document.getElementById('tree-filter-text-box').value
+        );
+        treeApi.expandAll();
     }
 
-    function expandRows() {
-        api.expandAll();
+    // function collapseRows() {
+    //     api.collapseAll();
+    // }
+
+    // function expandRows() {
+    //     api.expandAll();
+    //     console.log(debug)
+    // }
+
+    function collapseRows(grid_api) {
+        grid_api.collapseAll();
+    }
+
+    function expandRows(grid_api) {
+        grid_api.expandAll();
         console.log(debug)
     }
 
@@ -110,16 +210,35 @@
 <style>
 </style>
 
-
-<div id="controller-bar" class="flex flex-row space-x-2 m-2 w-full">
-    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows}>
-        Expand All
-    </button>
-    <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows}>
-        Collapse All
-    </button>
-    <div class="border rounded w-1/3">
-        <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
+<div class="h-full w-full flex flex-row overflow-y-hidden">
+    <div id="ontology-browser" class="w-1/5 h-full">
+        <div id="controller-bar" class="flex flex-row space-x-2 my-2 w-full">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(treeApi)}>
+                <pre> + </pre>
+            </button>
+            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(treeApi)}>
+                <pre> - </pre>
+            </button>
+            <div class="border rounded flex-grow-1">
+                <input class="w-full" type="search" id="tree-filter-text-box" placeholder="Filter..." on:input={onTreeFilterTextBoxChanged}>
+            </div>
+        </div>
+        <AgGrid bind:api={treeApi} bind:data={ontologyData} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} />
     </div>
+
+    <div id="building-browser" class="w-4/5 h-full">
+        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 ">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(api)}>
+                Expand All
+            </button>
+            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(api)}>
+                Collapse All
+            </button>
+            <div class="border rounded w-1/3">
+                <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
+            </div>
+        </div>
+        <AgGrid bind:api={api} bind:data columnDefs={columnDefs} options={options}/>
+    </div>
+
 </div>
-<AgGrid class="h-full" bind:api bind:data {columnDefs} {options}/>

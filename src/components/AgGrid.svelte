@@ -72,7 +72,7 @@
   <style>
     .ag-grid-component-local {
       width: 100%;
-      height: var(--grid-height, 90%);
+      height: var(--grid-height, 95%);
     }
 
   </style>
