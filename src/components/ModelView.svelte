@@ -2,9 +2,10 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    import EntityData from "../data/agGrid.json"
     import EntityPointsData from "../data/agGrid_pnts.json"
     import OntologyData from "../data/ontology.json"
+    import LocationsData from "../data/agGrid_Locations.json"
+
 	import { onMount } from "svelte";
     
     // let data = [
@@ -22,22 +23,41 @@
     // let data = EntityData;
     let data = EntityPointsData;
     let ontologyData = OntologyData;
+    let locationsData = LocationsData;
 
     // processed data
     // class set in building
     let class_set = new Set(data.map(row => row.class))
+    let location_class_set = new Set(locationsData.map(row => row.class))
 
     // Get full paths for all classes, expand into set of classes we need to display
     // We are doing this because it means the full data object is put into the row, not just a 'filler' item for classes on the path
     // https://www.ag-grid.com/javascript-data-grid/tree-data/#filler-groups
-    let class_all_paths_set = new Set( ontologyData.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat() )
+    // let class_all_paths_set = new Set( ontologyData.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat() )
+    let class_all_paths_set = getFullClassSet(ontologyData, class_set)
+    let location_class_all_paths_set = getFullClassSet(ontologyData, location_class_set)
 
+    function getFullClassSet(ontology, class_set){
+        // given an ontology file, extract all classes that are present in the paths for the class_set
+        // flatten these into one array
+        const all_classes = ontology.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat()
+        return new Set( all_classes )
+    }
+    /////////////////////////////////////////////////////////////
 
     let api;
     let treeApi;
+    let locationsApi;
+
+    // DEBUG
+    $: {
+        console.log(treeApi)
+    }
 
      // Filter
-     let filterClasses = []
+     let filterClasses = [] // for main grid
+     let classFilterSet = class_all_paths_set // for ontology grid
+
     // set filter on main grid
     function setClassFilter(grid_api, itemsToFilter){
         try {
@@ -115,11 +135,44 @@
         }
     }
 
+    // NEW OPTIONS - going to replace 'options' with this;
+    // This has a new path function to match an update JSON format; I need to convert the Equipment Data to use new JSON format first
+    let newOptions = {
+        treeData: true,
+        getDataPath: (data) => { return data.path },
+        autoGroupColumnDef: {
+                headerName: "Entity",
+                width: 300,
+                sortable: true,
+                // comparator: (valueA, valueB, nodeA, nodeB, isDescending) => {
+                //     if (nodeA.groupData == nodeB.groupData) return 0;
+                //     return (nodeA.groupData > nodeB.groupData) ? 1 : -1;
+                // },
+                cellRendererParams: {
+                    suppressCount: true,
+                    innerRenderer: labelGetter
+                },
+                // filter: 'agTextColumnFilter',
+                resizable: true
+        },
+        defaultColDef: {
+            sortable: true,
+            flex: 1,
+            resizable: true,
+            floatingFilter: true
+        },
+        sideBar: {
+            toolPanels: ['filters'],
+            defaultToolPanel: null
+        }
+    }
+
+    // Setup for Ontology Browser grid
     let ontologyGridOptions = {
         treeData: true,
         getDataPath: (data) => {
             if (data.path.full[0] == "https://brickschema.org/schema/Brick#Class"){
-                if (class_all_paths_set.has(data.uri)){
+                if (classFilterSet.has(data.uri)){
                     return data.path.full.slice(1)
                 } else {
                     return null
@@ -282,10 +335,10 @@
             </div>
         </div>
         <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => page="Equipment"}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment", classFilterSet=class_all_paths_set }}>
                 Equipment
             </button>
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => page="Location"}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location", classFilterSet=location_class_all_paths_set }}>
                 Location
             </button>
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => page="Collection"}>
@@ -295,6 +348,7 @@
         {#if page=="Equipment"}
         <AgGrid bind:api={api} bind:data columnDefs={columnDefs} options={options}/>
         {:else if page=="Location"}
+        <AgGrid bind:api={locationsApi} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
         {:else if page=="Collection"}
         {/if}
     </div>
