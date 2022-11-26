@@ -2,9 +2,10 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    import EntityPointsData from "../data/agGrid_pnts.json"
+    import EntityPointsData from "../data/agGrid_pnts.json" // OLD FORMAT; To be removed when ready.
     import OntologyData from "../data/ontology.json"
     import LocationsData from "../data/agGrid_Locations.json"
+    import EquipmentData from "../data/agGrid_Equipment.json"
 
 	import { onMount } from "svelte";
     
@@ -21,6 +22,17 @@
     let data = EntityPointsData;
     let ontologyData = OntologyData;
     let locationsData = LocationsData;
+    let equipmentData = EquipmentData
+
+    // Data ref object
+    let dataRef = {
+        Equipment: equipmentData,
+        Location: locationsData,
+        Collection: null
+    }
+
+    $: active_data = dataRef[page] 
+    // $: console.debug(active_data)
 
     //
     // PROCESS DATA FOR ONTOLOGY FILTERING
@@ -65,7 +77,8 @@
         Ontology: null,
         Equipment: null,
         Location: null,
-        Collection: null
+        Collection: null,
+        View: null // One viewer grid, instead of cycling APIs I can cycle data.
     }
 
     // Variable to hold the 'active' viewer grid api
@@ -74,6 +87,21 @@
     // PAGE HANDLING
     let page = "Equipment"
 
+
+    // This DOES NOT WORK - not sure why?
+    function changePage(new_page, new_filter_set){
+        // new_filter_set filters the ontology panel to just show classes on the page
+
+        // Update page variable
+        page = new_page
+        
+        // Clear current User filters from Ontology Grid
+        gridApis.Ontology.setFilterModel(null)
+        // Update ontology filter class set
+        classFilterSet = new_filter_set; 
+        // Refresh ontology grid to show changes
+        gridApis.Ontology.onFilterChanged()
+    }
 
     // DEBUG
     $: {
@@ -98,7 +126,7 @@
             // console.log(filterInstance)
             // Get Set filter
             const setFilter = filterInstance.filters.filter(filter => filter.filterNameKey == "setFilter")[0]
-            console.log(setFilter, grid_api)
+            // console.log(setFilter, grid_api)
             if (itemsToFilter.length==0){
                 setFilter.resetFilterValues()
                 setFilter.setModel(null)
@@ -113,7 +141,7 @@
 
     // Call the filter everytime the filter list changes
     $: {
-        setClassFilter(gridApis[page], filterClasses)
+        setClassFilter(gridApis.View, filterClasses)
     }
 
 
@@ -377,33 +405,36 @@
 
     <div id="building-browser" class="w-4/5 h-full">
         <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis[page])}>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.View)}>
                 Expand All
             </button>
-            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(gridApis[page])}>
+            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(gridApis.View)}>
                 Collapse All
             </button>
             <div class="border rounded w-1/3 border-blue-500">
-                <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged(gridApis[page])}>
+                <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged(gridApis.View)}>
             </div>
         </div>
         <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment"; classFilterSet=class_all_paths_set; treeApi.onFilterChanged() }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment"; classFilterSet=class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Equipment
             </button>
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location"; classFilterSet=location_class_all_paths_set; treeApi.onFilterChanged() }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location"; classFilterSet=location_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Location
             </button>
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => page="Collection"}>
                 Collection
             </button>
         </div>
-        {#if page=="Equipment"}
+        <!-- {#if page=="Equipment"}
         <AgGrid bind:api={gridApis.Equipment} bind:data columnDefs={columnDefs} options={options}/>
         {:else if page=="Location"}
         <AgGrid bind:api={gridApis.Location} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
         {:else if page=="Collection"}
-        {/if}
+        <AgGrid bind:api={gridApis.Location} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
+        {/if} -->
+        <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions}/>
+
     </div>
 
 </div>
