@@ -2,11 +2,16 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    // import EntityPointsData from "../data/agGrid_pnts.json" // OLD FORMAT; To be removed when ready.
     import OntologyData from "../data/ontology.json"
     import LocationsData from "../data/agGrid_Locations.json"
     import EquipmentData from "../data/agGrid_Equipment.json"
     import CollectionsData from "../data/agGrid_Collections.json"
+
+    // EXTRAS
+    import LocEquipData from "../data/agGrid_Locations_and_Equip.json"
+
+
+
 
 	import { onMount } from "svelte";
     
@@ -20,17 +25,21 @@
     // Make imported JSON accessible
     //
 
-    // let data = EntityPointsData;
     let ontologyData = OntologyData;
     let locationsData = LocationsData;
     let equipmentData = EquipmentData
     let collectionsData = CollectionsData;
 
+    // extras
+    let locEquipData = locationsData.concat(LocEquipData)
+
     // Data ref object
     let dataRef = {
         Equipment: equipmentData,
         Location: locationsData,
-        Collection: collectionsData
+        Collection: collectionsData,
+        // extras
+        LocationsEquipment: locEquipData
     }
 
     $: active_data = dataRef[page] 
@@ -53,6 +62,9 @@
     let location_class_all_paths_set = getFullClassSet(ontologyData, location_class_set)
     let collection_class_all_paths_set = getFullClassSet(ontologyData, collection_class_set)
 
+    // extras
+    let locEqp_class_set = new Set(locEquipData.map(row => row.class))
+    let locEqp_class_all_paths_set = getFullClassSet(ontologyData, locEqp_class_set)
 
     function getFullClassSet(ontology, class_set){
         // given an ontology file, extract all classes that are present in the paths for the class_set
@@ -61,6 +73,9 @@
         return new Set( all_classes )
     }
     
+
+
+
     //
     // ONTOLOGY DATA FILTERING
     //
@@ -308,11 +323,19 @@
     // }
 
     function labelGetter(params) {
-        return params.data.label
+        try {
+            return params.data.label
+        } catch {
+            console.debug("label error: ", params)
+        }
     }
 
     function nodeGetter(params){
-        return params.value.split("#").pop()
+        try {
+            return params.value.split("#").pop()
+        } catch {
+            console.debug("node error: ", params)
+        }
     }
 
     function classFilterValueGetter(params){
@@ -421,14 +444,12 @@
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => { setClassFilter(gridApis.View, []); page="Collection"; classFilterSet=collection_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Collection
             </button>
+            <div class="left-1/2 ml-0.5 w-0.5 bg-gray-600">
+            </div>
+            <button class="border border-teal-500 hover:bg-blue-700 hover:text-white text-teal-500 font-bold py-1 px-1 rounded" class:active-btn={page=="LocationsEquipment"} on:click={() => { setClassFilter(gridApis.View, []); page="LocationsEquipment"; classFilterSet=locEqp_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
+                Locations & Equipment
+            </button>
         </div>
-        <!-- {#if page=="Equipment"}
-        <AgGrid bind:api={gridApis.Equipment} bind:data columnDefs={columnDefs} options={options}/>
-        {:else if page=="Location"}
-        <AgGrid bind:api={gridApis.Location} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
-        {:else if page=="Collection"}
-        <AgGrid bind:api={gridApis.Location} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
-        {/if} -->
         <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions}/>
 
     </div>
