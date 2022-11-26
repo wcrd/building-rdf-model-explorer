@@ -2,10 +2,11 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    import EntityPointsData from "../data/agGrid_pnts.json" // OLD FORMAT; To be removed when ready.
+    // import EntityPointsData from "../data/agGrid_pnts.json" // OLD FORMAT; To be removed when ready.
     import OntologyData from "../data/ontology.json"
     import LocationsData from "../data/agGrid_Locations.json"
     import EquipmentData from "../data/agGrid_Equipment.json"
+    import CollectionsData from "../data/agGrid_Collections.json"
 
 	import { onMount } from "svelte";
     
@@ -19,16 +20,17 @@
     // Make imported JSON accessible
     //
 
-    let data = EntityPointsData;
+    // let data = EntityPointsData;
     let ontologyData = OntologyData;
     let locationsData = LocationsData;
     let equipmentData = EquipmentData
+    let collectionsData = CollectionsData;
 
     // Data ref object
     let dataRef = {
         Equipment: equipmentData,
         Location: locationsData,
-        Collection: null
+        Collection: collectionsData
     }
 
     $: active_data = dataRef[page] 
@@ -39,8 +41,9 @@
     //
 
     // class set in building
-    let class_set = new Set(data.map(row => row.class))
+    let class_set = new Set(equipmentData.map(row => row.class))
     let location_class_set = new Set(locationsData.map(row => row.class))
+    let collection_class_set = new Set(collectionsData.map(row => row.class))
 
     // Get full paths for all classes, expand into set of classes we need to display
     // We are doing this because it means the full data object is put into the row, not just a 'filler' item for classes on the path
@@ -48,6 +51,8 @@
     // let class_all_paths_set = new Set( ontologyData.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat() )
     let class_all_paths_set = getFullClassSet(ontologyData, class_set)
     let location_class_all_paths_set = getFullClassSet(ontologyData, location_class_set)
+    let collection_class_all_paths_set = getFullClassSet(ontologyData, collection_class_set)
+
 
     function getFullClassSet(ontology, class_set){
         // given an ontology file, extract all classes that are present in the paths for the class_set
@@ -173,35 +178,35 @@
         // { headerName: "Term", field: "term", sortable: true }
     ]
 
-    let options = {
-        treeData: true,
-        getDataPath: getDataPath,
-        autoGroupColumnDef: {
-                headerName: "Entity",
-                width: 300,
-                sortable: true,
-                // comparator: (valueA, valueB, nodeA, nodeB, isDescending) => {
-                //     if (nodeA.groupData == nodeB.groupData) return 0;
-                //     return (nodeA.groupData > nodeB.groupData) ? 1 : -1;
-                // },
-                cellRendererParams: {
-                    suppressCount: true,
-                    innerRenderer: labelGetter
-                },
-                // filter: 'agTextColumnFilter',
-                resizable: true
-        },
-        defaultColDef: {
-            sortable: true,
-            flex: 1,
-            resizable: true,
-            floatingFilter: true
-        },
-        sideBar: {
-            toolPanels: ['filters'],
-            defaultToolPanel: null
-        }
-    }
+    // let options = {
+    //     treeData: true,
+    //     getDataPath: getDataPath,
+    //     autoGroupColumnDef: {
+    //             headerName: "Entity",
+    //             width: 300,
+    //             sortable: true,
+    //             // comparator: (valueA, valueB, nodeA, nodeB, isDescending) => {
+    //             //     if (nodeA.groupData == nodeB.groupData) return 0;
+    //             //     return (nodeA.groupData > nodeB.groupData) ? 1 : -1;
+    //             // },
+    //             cellRendererParams: {
+    //                 suppressCount: true,
+    //                 innerRenderer: labelGetter
+    //             },
+    //             // filter: 'agTextColumnFilter',
+    //             resizable: true
+    //     },
+    //     defaultColDef: {
+    //         sortable: true,
+    //         flex: 1,
+    //         resizable: true,
+    //         floatingFilter: true
+    //     },
+    //     sideBar: {
+    //         toolPanels: ['filters'],
+    //         defaultToolPanel: null
+    //     }
+    // }
 
     // NEW OPTIONS - going to replace 'options' with this;
     // This has a new path function to match an update JSON format; I need to convert the Equipment Data to use new JSON format first
@@ -288,19 +293,19 @@
         filterClasses = event.detail.map(row => row.term)
     }
 
-    function ontologyExternalFilterFunc(row){
-        // debug
-        if(classFilterSet.has(row.data.uri)){
-            console.debug("Row Value: ", row.data.uri)
-        }
-        return classFilterSet.has(row.data.uri)
-    }
+    // function ontologyExternalFilterFunc(row){
+    //     // debug
+    //     if(classFilterSet.has(row.data.uri)){
+    //         console.debug("Row Value: ", row.data.uri)
+    //     }
+    //     return classFilterSet.has(row.data.uri)
+    // }
 
-    function getDataPath(data) {
-        const raw = data.path.split("</>"); // this should help with duplicates. Will then use a formatter function to display term only.
+    // function getDataPath(data) {
+    //     const raw = data.path.split("</>"); // this should help with duplicates. Will then use a formatter function to display term only.
 
-        return raw
-    }
+    //     return raw
+    // }
 
     function labelGetter(params) {
         return params.data.label
@@ -363,15 +368,6 @@
         gridApis.Ontology.expandAll();
     }
 
-    // function collapseRows() {
-    //     api.collapseAll();
-    // }
-
-    // function expandRows() {
-    //     api.expandAll();
-    //     console.log(debug)
-    // }
-
     function collapseRows(grid_api) {
         grid_api.collapseAll();
     }
@@ -416,13 +412,13 @@
             </div>
         </div>
         <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment"; classFilterSet=class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { setClassFilter(gridApis.View, []); page="Equipment"; classFilterSet=class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Equipment
             </button>
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location"; classFilterSet=location_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { setClassFilter(gridApis.View, []); page="Location"; classFilterSet=location_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Location
             </button>
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => page="Collection"}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => { setClassFilter(gridApis.View, []); page="Collection"; classFilterSet=collection_class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Collection
             </button>
         </div>
