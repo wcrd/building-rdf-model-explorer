@@ -8,24 +8,24 @@
 
 	import { onMount } from "svelte";
     
-    // let data = [
-    //     { make: "Toyota", model: "Celica", price: 35000, path: "usa/car/ok" },
-    //     { make: "Ford", model: "Mondeo", price: 32000, path: "usa/truck/ok" },
-    //     { make: "Taurus", model: "X", price: 32000, path: "usa/truck/shit" },
-    //     { make: "Porsche", model: "Boxter", price: 72000, path: "aus/car/ok" },
-    // ];
 
     const PREFIXES = {
         "https://brickschema.org/schema/Brick": "brick",
         "https://switchautomation.com/schemas/BrickExtension": "switch"
     }
 
-    // let data = EntityData;
+    //
+    // Make imported JSON accessible
+    //
+
     let data = EntityPointsData;
     let ontologyData = OntologyData;
     let locationsData = LocationsData;
 
-    // processed data
+    //
+    // PROCESS DATA FOR ONTOLOGY FILTERING
+    //
+
     // class set in building
     let class_set = new Set(data.map(row => row.class))
     let location_class_set = new Set(locationsData.map(row => row.class))
@@ -43,22 +43,54 @@
         const all_classes = ontology.filter(row => class_set.has(row.uri)).map(row => row.path.full).flat()
         return new Set( all_classes )
     }
-    /////////////////////////////////////////////////////////////
+    
+    //
+    // ONTOLOGY DATA FILTERING
+    //
+    // Create dynamic variable to hold the current set to filter the ontology to
+    let classFilterSet = class_all_paths_set // for ontology grid
+    
+    // Reactive variable holding filtered ontology that updates when building model view selection does (via the filter set)
+    $: ont_data = ontologyData.filter((row) => {return classFilterSet.has(row.uri)})
+
+    //
+    // GRID APIS
+    //
 
     let api;
     let treeApi;
     let locationsApi;
 
-    // DEBUG
-    $: {
-        console.log(treeApi)
+    let gridApis = {
+        Ontology: null,
+        Equipment: null,
+        Location: null,
+        Collection: null
     }
 
-     // Filter
-     let filterClasses = [] // for main grid
-     let classFilterSet = class_all_paths_set // for ontology grid
+    // Variable to hold the 'active' viewer grid api
+    // let activeGridApi = api
 
-    // set filter on main grid
+    // PAGE HANDLING
+    let page = "Equipment"
+
+
+    // DEBUG
+    $: {
+        // console.log(treeApi)
+        // console.debug(class_all_paths_set, location_class_all_paths_set)
+        // console.log(ontologyData)
+        // console.log(ont_data)
+    }
+
+    //
+    // MAIN GRID FILTERS
+    //
+
+    let filterClasses = [] // for main grid
+
+
+    // Function to set the 'class' SET type filter on main grid
     function setClassFilter(grid_api, itemsToFilter){
         try {
             const filterInstance = grid_api.getFilterInstance('class');
@@ -78,9 +110,17 @@
             console.log('Grid not ready to filter')
         }
     }
+
+    // Call the filter everytime the filter list changes
     $: {
-        setClassFilter(api, filterClasses)
+        setClassFilter(gridApis[page], filterClasses)
     }
+
+
+
+    //
+    // GRID CONFIGS
+    //
 
     let columnDefs = [
         { headerName: "Label", field: "label", colId: "labelCol", filter: 'agTextColumnFilter'},
@@ -172,11 +212,14 @@
         treeData: true,
         getDataPath: (data) => {
             if (data.path.full[0] == "https://brickschema.org/schema/Brick#Class"){
-                if (classFilterSet.has(data.uri)){
-                    return data.path.full.slice(1)
-                } else {
-                    return null
-                }
+                // This is how I used to filter the grid; this is not dynamic.
+                // I am going to move this filtering into an 'externalfilter'
+                // if (classFilterSet.has(data.uri)){
+                //     return data.path.full.slice(1)
+                // } else {
+                //     return null
+                // }
+                return data.path.full.slice(1)
             }
             else {
                 return null
@@ -207,11 +250,22 @@
         },
         rowSelection:'multiple',
         rowData: null,
-        groupSelectsChildren: true
+        groupSelectsChildren: true,
+        // This does not work as it only does each row, not the children.
+        // isExternalFilterPresent: (params) => {console.debug("Filter Set: ", classFilterSet); return true},
+        // doesExternalFilterPass: ontologyExternalFilterFunc
     }
 
     function rowChangeTest(event) {
         filterClasses = event.detail.map(row => row.term)
+    }
+
+    function ontologyExternalFilterFunc(row){
+        // debug
+        if(classFilterSet.has(row.data.uri)){
+            console.debug("Row Value: ", row.data.uri)
+        }
+        return classFilterSet.has(row.data.uri)
     }
 
     function getDataPath(data) {
@@ -267,7 +321,7 @@
     }
 
     // GRID CONTROL
-    function onFilterTextBoxChanged() {
+    function onFilterTextBoxChanged(api) {
         api.setQuickFilter(
             document.getElementById('filter-text-box').value
         );
@@ -275,10 +329,10 @@
     }
 
     function onTreeFilterTextBoxChanged() {
-        treeApi.setQuickFilter(
+        gridApis.Ontology.setQuickFilter(
             document.getElementById('tree-filter-text-box').value
         );
-        treeApi.expandAll();
+        gridApis.Ontology.expandAll();
     }
 
     // function collapseRows() {
@@ -298,8 +352,7 @@
         grid_api.expandAll();
     }
 
-    // PAGE HANDLING
-    let page = "Equipment"
+
 
 </script>
 
@@ -309,36 +362,36 @@
 <div class="h-full w-full flex flex-row overflow-y-hidden">
     <div id="ontology-browser" class="w-1/5 h-full">
         <div id="controller-bar" class="flex flex-row space-x-2 my-2 px-2 w-full">
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(treeApi)}>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.Ontology)}>
                 <pre> + </pre>
             </button>
-            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(treeApi)}>
+            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(gridApis.Ontology)}>
                 <pre> - </pre>
             </button>
             <div class="border rounded border-blue-500 flex-grow">
                 <input class="w-full" type="search" id="tree-filter-text-box" placeholder="Filter..." on:input={onTreeFilterTextBoxChanged}>
             </div>
         </div>
-        <AgGrid bind:api={treeApi} bind:data={ontologyData} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} on:select={rowChangeTest}/>
+        <AgGrid bind:api={gridApis.Ontology} bind:data={ont_data} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} on:select={rowChangeTest}/>
     </div>
 
     <div id="building-browser" class="w-4/5 h-full">
         <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(api)}>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis[page])}>
                 Expand All
             </button>
-            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(api)}>
+            <button class="bg-slate-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={collapseRows(gridApis[page])}>
                 Collapse All
             </button>
             <div class="border rounded w-1/3 border-blue-500">
-                <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged}>
+                <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged(gridApis[page])}>
             </div>
         </div>
         <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment", classFilterSet=class_all_paths_set }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { page="Equipment"; classFilterSet=class_all_paths_set; treeApi.onFilterChanged() }}>
                 Equipment
             </button>
-            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location", classFilterSet=location_class_all_paths_set }}>
+            <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Location"} on:click={() => { page="Location"; classFilterSet=location_class_all_paths_set; treeApi.onFilterChanged() }}>
                 Location
             </button>
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Collection"} on:click={() => page="Collection"}>
@@ -346,9 +399,9 @@
             </button>
         </div>
         {#if page=="Equipment"}
-        <AgGrid bind:api={api} bind:data columnDefs={columnDefs} options={options}/>
+        <AgGrid bind:api={gridApis.Equipment} bind:data columnDefs={columnDefs} options={options}/>
         {:else if page=="Location"}
-        <AgGrid bind:api={locationsApi} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
+        <AgGrid bind:api={gridApis.Location} bind:data={locationsData} columnDefs={columnDefs} options={newOptions}/>
         {:else if page=="Collection"}
         {/if}
     </div>
