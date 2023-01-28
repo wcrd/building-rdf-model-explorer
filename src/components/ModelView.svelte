@@ -187,6 +187,9 @@
         },
         { headerName: "Ontology", field: "class", cellRenderer: ontologyGetter },
         { headerName: "Subject", field: "subject", sortable: true },
+        { headerName: "P", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
+        { headerName: "C", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
+        { headerName: "R", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
     ];
 
     let ontologyColumnDefs = [
@@ -245,7 +248,7 @@
         },
         defaultColDef: {
             sortable: true,
-            flex: 1,
+            // flex: 1,
             resizable: true,
             floatingFilter: true
         },
