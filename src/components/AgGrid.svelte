@@ -20,6 +20,7 @@
       rowSelection: "multiple",
     };
     export let loading = false;
+    export let sizeColumnsToFit = true;
   
     let themeUrl = `https://unpkg.com/ag-grid-community/dist/styles/ag-theme-${theme}.css`;
     let ref;
@@ -40,12 +41,15 @@
     const onGridReady = () => {
       api = grid.gridOptions.api;
       if (loading) api.showLoadingOverlay();
+      if (sizeColumnsToFit) api.sizeColumnsToFit();
+      dispatch("ready")
     };
   
     const updateData = (data) => {
       if (grid && api) {
         api.setRowData(data);
         api.setColumnDefs(columnDefs);
+        dispatch("updated")
       }
     };
   

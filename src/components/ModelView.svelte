@@ -483,7 +483,7 @@
                 Locations & Equipment
             </button>
         </div>
-        <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions}/>
+        <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions} on:updated={gridApis.View.sizeColumnsToFit()}/>
 
     </div>
 
