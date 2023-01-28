@@ -440,8 +440,11 @@
 </style>
 
 <div class="h-full w-full flex flex-row overflow-y-hidden">
-    <div id="ontology-browser" class="w-1/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 my-2 px-2 w-full">
+    <div id="ontology-browser" class="w-1/5 h-full flex flex-col">
+        <div id="filler_r1" class="flex my-1">
+            <button class="border border-white font-bold py-1 px-1 rounded cursor-default pl-2">Model Tree Viewer</button>
+        </div>
+        <div id="controller-bar" class="flex flex-row space-x-2 my-1 px-2 w-full">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.Ontology)}>
                 <pre> + </pre>
             </button>
@@ -455,8 +458,8 @@
         <AgGrid bind:api={gridApis.Ontology} bind:data={ont_data} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} on:select={rowChangeTest}/>
     </div>
 
-    <div id="building-browser" class="w-4/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 px-2">
+    <div id="building-browser" class="w-4/5 h-full flex flex-col">
+        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-1 px-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.View)}>
                 Expand All
             </button>
@@ -467,7 +470,7 @@
                 <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged(gridApis.View)}>
             </div>
         </div>
-        <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
+        <div id="page-selector" class="flex flex-row space-x-2 w-full my-1 px-2">
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { setClassFilter(gridApis.View, []); page="Equipment"; classFilterSet=class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Equipment
             </button>
