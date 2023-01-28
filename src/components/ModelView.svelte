@@ -10,8 +10,8 @@
     // EXTRAS
     import LocEquipData from "../data/agGrid_Locations_and_Equip.json"
 
-
-
+    import ValidationData from "../data/validation_data.json"
+ 
 
 	import { onMount } from "svelte";
     
@@ -44,6 +44,17 @@
 
     $: active_data = dataRef[page] 
     // $: console.debug(active_data)
+
+    //
+    // TEMP WORKING FOR VALIDATION
+    //
+    let validationData = ValidationData
+    const validation_state = {
+        // has validation been run for?
+        points: true,
+        composition: false,
+        relationships: false
+    }
 
     //
     // PROCESS DATA FOR ONTOLOGY FILTERING
@@ -187,9 +198,9 @@
         },
         { headerName: "Ontology", field: "class", cellRenderer: ontologyGetter },
         { headerName: "Subject", field: "subject", sortable: true },
-        { headerName: "P", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
-        { headerName: "C", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
-        { headerName: "R", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90 },
+        { headerName: "P", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'points' } },
+        { headerName: "C", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'composition' }  },
+        { headerName: "R", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'relationships' }  },
     ];
 
     let ontologyColumnDefs = [
@@ -250,12 +261,12 @@
             sortable: true,
             // flex: 1,
             resizable: true,
-            floatingFilter: true
+            floatingFilter: true,
         },
         sideBar: {
             toolPanels: ['filters'],
             defaultToolPanel: null
-        }
+        },
     }
 
     // Setup for Ontology Browser grid
@@ -338,6 +349,25 @@
             return params.value.split("#").pop()
         } catch {
             console.debug("node error: ", params)
+        }
+    }
+
+    function validationResultGetter(params, type){
+        try {
+            if (!validation_state[params.type]){ return "⚪" }
+            
+            // get validation result
+            const subj = params.data.subject;
+            let valid = null
+            if (subj in validationData){
+                valid = validationData[subj][params.type].valid
+                // console.log(validationData[subj].points.valid)
+            }
+            // if validation has been run, and result is null, then there were no issues with entity
+            return valid==null ? "🟢" : valid==true ? "🟢" : "🔴"
+        } catch {
+            console.debug("Error processing validation results for: ", subj)
+            return "❌"
         }
     }
 
