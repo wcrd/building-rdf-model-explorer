@@ -2,15 +2,15 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    import OntologyData from "../data/ontology.json"
-    import LocationsData from "../data/agGrid_Locations.json"
-    import EquipmentData from "../data/agGrid_Equipment.json"
-    import CollectionsData from "../data/agGrid_Collections.json"
+    import OntologyData from '../data/default/ontology.json'
+    import LocationsData from "../data/default/agGrid_Locations.json"
+    import EquipmentData from "../data/default/agGrid_Equipment.json"
+    import CollectionsData from "../data/default/agGrid_Collections.json"
 
     // EXTRAS
-    import LocEquipData from "../data/agGrid_Locations_and_Equip.json"
+    import LocEquipData from "../data/default/agGrid_Locations_and_Equip.json"
 
-    import ValidationData from "../data/validation_data.json"
+    import ValidationData from "../data/default/validation_data.json"
  
 
 	import { onMount } from "svelte";
