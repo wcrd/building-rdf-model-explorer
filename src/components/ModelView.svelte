@@ -2,16 +2,16 @@
     
     import AgGrid from "./AgGrid.svelte";
 
-    import OntologyData from "../data/ontology.json"
-    import LocationsData from "../data/agGrid_Locations.json"
-    import EquipmentData from "../data/agGrid_Equipment.json"
-    import CollectionsData from "../data/agGrid_Collections.json"
+    import OntologyData from '../data/default/ontology.json'
+    import LocationsData from "../data/default/agGrid_Locations.json"
+    import EquipmentData from "../data/default/agGrid_Equipment.json"
+    import CollectionsData from "../data/default/agGrid_Collections.json"
 
     // EXTRAS
-    import LocEquipData from "../data/agGrid_Locations_and_Equip.json"
+    import LocEquipData from "../data/default/agGrid_Locations_and_Equip.json"
 
-
-
+    import ValidationData from "../data/default/validation_data.json"
+ 
 
 	import { onMount } from "svelte";
     
@@ -44,6 +44,17 @@
 
     $: active_data = dataRef[page] 
     // $: console.debug(active_data)
+
+    //
+    // TEMP WORKING FOR VALIDATION
+    //
+    let validationData = ValidationData
+    const validation_state = {
+        // has validation been run for?
+        points: true,
+        composition: false,
+        relationships: false
+    }
 
     //
     // PROCESS DATA FOR ONTOLOGY FILTERING
@@ -187,6 +198,9 @@
         },
         { headerName: "Ontology", field: "class", cellRenderer: ontologyGetter },
         { headerName: "Subject", field: "subject", sortable: true },
+        { headerName: "P", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'points' } },
+        { headerName: "C", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'composition' }  },
+        { headerName: "R", suppressSizeToFit: true, resizable: false, headerClass: 'fixed-size-header', width: 90, cellRenderer: validationResultGetter, cellRendererParams: { type: 'relationships' }  },
     ];
 
     let ontologyColumnDefs = [
@@ -245,14 +259,14 @@
         },
         defaultColDef: {
             sortable: true,
-            flex: 1,
+            // flex: 1,
             resizable: true,
-            floatingFilter: true
+            floatingFilter: true,
         },
         sideBar: {
             toolPanels: ['filters'],
             defaultToolPanel: null
-        }
+        },
     }
 
     // Setup for Ontology Browser grid
@@ -338,6 +352,25 @@
         }
     }
 
+    function validationResultGetter(params, type){
+        try {
+            if (!validation_state[params.type]){ return "⚪" }
+            
+            // get validation result
+            const subj = params.data.subject;
+            let valid = null
+            if (subj in validationData){
+                valid = validationData[subj][params.type].valid
+                // console.log(validationData[subj].points.valid)
+            }
+            // if validation has been run, and result is null, then there were no issues with entity
+            return valid==null ? "🟢" : valid==true ? "🟢" : "🔴"
+        } catch {
+            console.debug("Error processing validation results for: ", subj)
+            return "❌"
+        }
+    }
+
     function classFilterValueGetter(params){
         return params.data.class.split("#").pop()
     }
@@ -407,8 +440,11 @@
 </style>
 
 <div class="h-full w-full flex flex-row overflow-y-hidden">
-    <div id="ontology-browser" class="w-1/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 my-2 px-2 w-full">
+    <div id="ontology-browser" class="w-1/5 h-full flex flex-col">
+        <div id="filler_r1" class="flex my-1">
+            <button class="border border-white font-bold py-1 px-1 rounded cursor-default pl-2">Model Tree Viewer</button>
+        </div>
+        <div id="controller-bar" class="flex flex-row space-x-2 my-1 px-2 w-full">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.Ontology)}>
                 <pre> + </pre>
             </button>
@@ -422,8 +458,8 @@
         <AgGrid bind:api={gridApis.Ontology} bind:data={ont_data} columnDefs={ontologyColumnDefs} options={ontologyGridOptions} on:select={rowChangeTest}/>
     </div>
 
-    <div id="building-browser" class="w-4/5 h-full">
-        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-2 px-2">
+    <div id="building-browser" class="w-4/5 h-full flex flex-col">
+        <div id="controller-bar" class="flex flex-row space-x-2 w-full my-1 px-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded" on:click={expandRows(gridApis.View)}>
                 Expand All
             </button>
@@ -434,7 +470,7 @@
                 <input class="w-full" type="search" id="filter-text-box" placeholder="Filter..." on:input={onFilterTextBoxChanged(gridApis.View)}>
             </div>
         </div>
-        <div id="page-selector" class="flex flex-row space-x-2 w-full my-2 px-2">
+        <div id="page-selector" class="flex flex-row space-x-2 w-full my-1 px-2">
             <button class="border border-blue-500 hover:bg-blue-700 hover:text-white text-blue-500 font-bold py-1 px-1 rounded" class:active-btn={page=="Equipment"} on:click={() => { setClassFilter(gridApis.View, []); page="Equipment"; classFilterSet=class_all_paths_set; gridApis.Ontology.onFilterChanged() }}>
                 Equipment
             </button>
@@ -450,7 +486,7 @@
                 Locations & Equipment
             </button>
         </div>
-        <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions}/>
+        <AgGrid bind:api={gridApis.View} bind:data={active_data} columnDefs={columnDefs} options={newOptions} on:updated={gridApis.View.sizeColumnsToFit()}/>
 
     </div>
 
